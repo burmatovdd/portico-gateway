@@ -1,0 +1,10 @@
+.git
+.work
+bin
+node_modules
+**/*.local.yaml
+.env
+
+deploy
+docs
+.idea

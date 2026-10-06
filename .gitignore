@@ -1,0 +1,26 @@
+.work/
+bin/
+.env
+*.local.yaml
+node_modules/
+coverage*
+.DS_Store
+
+.idea/
+
+deploy/secrets.yaml
+deploy/regcred.yaml
+# Local deployment settings; public defaults remain in the chart.
+/deploy/values.yaml
+
+# Local credentials, build outputs and diagnostic artifacts
+.env.*
+!.env.example
+*.key
+*.p12
+*.pfx
+*.kubeconfig
+*.log
+__pycache__/
+/portico
+/portico-models

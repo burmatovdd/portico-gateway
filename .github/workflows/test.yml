@@ -1,0 +1,23 @@
+name: test
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: portico_test
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PORTICO_TEST_DATABASE_URL: postgres://postgres:test-only@localhost:5432/portico_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: {go-version-file: go.mod}
+      - run: make test build
+      - run: go vet ./...

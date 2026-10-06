@@ -1,0 +1,5 @@
+# Build with a context containing Linux portico and portico-models binaries.
+# BASE_IMAGE must be an immutable digest of the currently deployed image.
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+COPY --chmod=0755 portico portico-models /usr/local/bin/

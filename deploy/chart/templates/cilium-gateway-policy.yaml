@@ -1,0 +1,17 @@
+{{- if and .Values.networkPolicy.enabled .Values.networkPolicy.ciliumGatewayIngress }}
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-gateway
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  ingress:
+    - fromEntities:
+        - ingress
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+{{- end }}

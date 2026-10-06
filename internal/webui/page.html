@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{.Title}} — Portico Gateway</title><link rel="stylesheet" href="/assets/portico.css"></head>
+<body><div class="layout"><aside class="scene" aria-hidden="true"></aside><main id="main"><div class="content"><a class="brand" href="/" aria-label="Portico Gateway — главная"><span class="mark" aria-hidden="true"></span><span>Portico Gateway</span></a>
+<h1>{{.Title}}</h1>
+{{if .Client}}<div class="application"><span>Приложение</span><strong>{{.Client}}</strong></div>{{end}}
+<p class="description">{{.Body}}</p>
+{{if .Note}}<p class="note">{{.Note}}</p>{{end}}
+{{if .Transaction}}<form method="post" action="/oauth/login"><input type="hidden" name="transaction" value="{{.Transaction}}"><input type="hidden" name="csrf" value="{{.CSRF}}"><button type="submit">Продолжить</button></form><a class="secondary" href="/">На главную</a>{{else if .ReturnURL}}<a class="button" href="{{.ReturnURL}}">Вернуться в приложение</a>{{else if .HomeLink}}<a class="button" href="/">На главную</a>{{end}}
+{{if .Transaction}}<footer>Доступ определяется правами вашей учётной записи.</footer>{{end}}
+</div></main></div></body></html>

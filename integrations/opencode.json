@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "portico": {
+      "type": "remote",
+      "url": "https://portico.example.org/mcp",
+      "oauth": { "clientId": "opencode", "scope": "mcp" }
+    }
+  }
+}

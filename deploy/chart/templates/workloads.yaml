@@ -1,0 +1,79 @@
+{{- $root := . -}}
+{{- $component := "core" -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $root.Release.Name }}-{{ $component }}
+spec:
+  replicas: {{ $root.Values.replicaCount }}
+  selector:
+    matchLabels: {app.kubernetes.io/instance: {{ $root.Release.Name }}, app.kubernetes.io/component: {{ $component }}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/instance: {{ $root.Release.Name }}, app.kubernetes.io/component: {{ $component }}}
+      annotations:
+        checksum/config: {{ toJson $root.Values.config | sha256sum }}
+        checksum/ca: {{ toJson $root.Values.certificates | sha256sum }}
+        checksum/database-ca: {{ toJson $root.Values.database.certificates | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      {{- with $root.Values.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      nodeSelector: {{ toYaml $root.Values.nodeSelector | nindent 8 }}
+      tolerations: {{ toYaml $root.Values.tolerations | nindent 8 }}
+      affinity: {{ toYaml $root.Values.affinity | nindent 8 }}
+      containers:
+        - name: {{ $component }}
+          image: {{ if $root.Values.image.digest }}{{ printf "%s@%s" $root.Values.image.repository $root.Values.image.digest | quote }}{{ else }}{{ printf "%s:%s" $root.Values.image.repository $root.Values.image.tag | quote }}{{ end }}
+          imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          command: ["/usr/local/bin/portico"]
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          ports: [{name: http, containerPort: 8080}]
+          resources: {{ toYaml $root.Values.resources | nindent 12 }}
+          readinessProbe: {httpGet: {path: /readyz, port: http}, initialDelaySeconds: 5}
+          livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 15}
+          env:
+            - {name: PORTICO_CONFIG, value: /etc/portico/config.yaml}
+            - {name: PORTICO_DATABASE_HOST, value: {{ $root.Values.database.host | quote }}}
+            - {name: PORTICO_DATABASE_PORT, value: {{ $root.Values.database.port | quote }}}
+            - {name: PORTICO_DATABASE_NAME, value: {{ $root.Values.database.databaseName | quote }}}
+            - {name: PORTICO_DATABASE_USER, value: {{ $root.Values.database.user | quote }}}
+            - {name: PORTICO_DATABASE_SSLMODE, value: {{ $root.Values.database.sslMode | quote }}}
+            {{- if $root.Values.certificates }}
+            - {name: PORTICO_CA_FILE, value: /etc/portico/ca.crt}
+            {{- end }}
+            {{- if $root.Values.database.certificates }}
+            - {name: PORTICO_DATABASE_CA_FILE, value: /etc/portico/database-ca.crt}
+            {{- end }}
+            {{- if $root.Values.config.admin.enabled }}
+            - name: PORTICO_LITELLM_API_KEY
+              valueFrom: {secretKeyRef: {name: {{ $root.Values.existingSecret }}, key: {{ $root.Values.models.secretKey }}}}
+            {{- end }}
+            - name: PORTICO_DATABASE_PASSWORD
+              valueFrom: {secretKeyRef: {name: {{ $root.Values.existingSecret }}, key: database-password}}
+            - name: PORTICO_ENCRYPTION_KEY
+              valueFrom: {secretKeyRef: {name: {{ $root.Values.existingSecret }}, key: encryption-key}}
+            - name: PORTICO_OIDC_CLIENT_SECRET
+              valueFrom: {secretKeyRef: {name: {{ $root.Values.existingSecret }}, key: oidc-client-secret, optional: true}}
+            {{- range $root.Values.oauthClientSecrets }}
+            - name: {{ .name | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $root.Values.existingSecret | quote }}
+                  key: {{ .secretKey | quote }}
+            {{- end }}
+          volumeMounts: [{name: config, mountPath: /etc/portico, readOnly: true}]
+      volumes:
+        - name: config
+          configMap: {name: {{ $root.Release.Name }}-config}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $root.Release.Name }}-{{ $component }}
+spec:
+  selector: {app.kubernetes.io/instance: {{ $root.Release.Name }}, app.kubernetes.io/component: {{ $component }}}
+  ports: [{name: http, port: 8080, targetPort: http}]

@@ -1,0 +1,106 @@
+# Generic installation example. Configure network rules, CA trust and endpoints before deployment.
+# Models and HTTPRoute are disabled until their dependencies are configured.
+image:
+  repository: registry.example.org/portico-gateway
+  tag: pilot
+  digest: ''
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+replicaCount: 2
+existingSecret: portico-gateway
+oauthClientSecrets:
+- name: PORTICO_OPENWEBUI_CLIENT_SECRET
+  secretKey: openwebui-client-secret
+nodeSelector: {}
+tolerations: []
+affinity: {}
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: '1'
+    memory: 512Mi
+database:
+  host: postgres.example.org
+  port: 5432
+  databaseName: portico
+  user: portico
+  sslMode: verify-full
+  certificates: []
+certificates: []
+config:
+  admin:
+    enabled: false
+    groups: []
+    catalog_url: https://litellm.example.org/v1
+    allow_http: false
+  portal:
+    enabled: false
+    service: strix
+  listen: :8080
+  public_url: https://portico.example.org
+  oauth:
+    clients:
+    - id: openwebui
+      token_endpoint_auth_method: client_secret_post
+      client_secret_env: PORTICO_OPENWEBUI_CLIENT_SECRET
+      redirect_uris:
+      - https://chat.example.org/oauth/clients/mcp:portico/callback
+    - id: opencode
+      redirect_uris:
+      - http://127.0.0.1:19876/mcp/oauth/callback
+    allowed_origins: []
+  oidc:
+    issuer: https://idp.example.org
+    client_id: portico-client-id
+    audience: portico-client-id
+    roles_claim: groups
+    roles_format: strings
+    scopes:
+    - openid
+    - profile
+    - offline_access
+  session:
+    max_age_seconds: 43200
+    idle_seconds: 1800
+  services: {}
+gateway:
+  enabled: false
+  hostname: portico.example.org
+  parentRefs: []
+networkPolicy:
+  enabled: true
+  ciliumGatewayIngress: false
+  ciliumNodeLocalDNS: false
+  ingressFrom: []
+  egressRules: []
+models:
+  enabled: false
+  replicaCount: 2
+  secretKey: litellm-api-key
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: '1'
+      memory: 256Mi
+  config:
+    policy_store: ""
+    context_budgets: {}
+    listen: :8080
+    issuer: https://idp.example.org
+    audience: chat-client-id
+    organization: example
+    groups_claim: groups
+    upstream: https://litellm.example.org/v1
+    allow_http: false
+    max_request_bytes: 4194304
+    max_duration_seconds: 600
+    rules:
+      example/red-team:
+      - pentest
+  networkPolicy:
+    ingressFrom: []
+    egressRules: []

@@ -1,0 +1,21 @@
+{{- if .Values.config.admin.enabled }}
+{{- if or (not .Values.models.enabled) (ne .Values.models.config.policy_store "postgres") }}
+{{- fail "config.admin.enabled requires models.enabled and models.config.policy_store=postgres" }}
+{{- end }}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+data:
+  config.yaml: |
+    {{- toYaml .Values.config | nindent 4 }}
+  ca.crt: |
+    {{- range .Values.certificates }}
+    {{- . | nindent 4 }}
+    {{- end }}
+
+  database-ca.crt: |
+    {{- range .Values.database.certificates }}
+    {{- . | nindent 4 }}
+    {{- end }}
