@@ -51,3 +51,34 @@ func TestNeverFollowsRedirectWithToken(t *testing.T) {
 		t.Fatal("token sent to another origin")
 	}
 }
+
+func TestDownloadReportChecksFormatAndMediaType(t *testing.T) {
+	calls := 0
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if r.URL.Path != "/reports/scan-1/download" || r.URL.Query().Get("format") != "pdf" ||
+			r.Header.Get("Accept") != "application/pdf" || r.Header.Get("Authorization") != "Bearer reader" {
+			t.Fatal("unexpected report request")
+		}
+		w.Header().Set("Content-Type", "application/pdf")
+		w.Write([]byte("%PDF-1.4\n"))
+	}))
+	defer srv.Close()
+	op := Operation{Method: "GET", Path: "/reports/{scan_id}/download", Parameters: map[string]Parameter{
+		"scan_id": {Kind: "id", In: "path", Required: true},
+		"format":  {Kind: "string", In: "query", Required: true},
+	}}
+	p := &Proxy{Client: srv.Client(), Services: map[string]Service{"strix": {
+		BaseURL: srv.URL, Roles: []string{"reader"}, Operations: map[string]Operation{"downloadReport": op},
+	}}}
+	id := identity.Identity{Roles: []string{"reader"}}
+	if _, err := p.Call(context.Background(), id, "reader", "strix", "downloadReport",
+		map[string]any{"scan_id": "scan-1", "format": "evil"}); err == nil || calls != 0 {
+		t.Fatal("invalid report format reached upstream")
+	}
+	result, err := p.Call(context.Background(), id, "reader", "strix", "downloadReport",
+		map[string]any{"scan_id": "scan-1", "format": "pdf"})
+	if err != nil || result.ContentType != "application/pdf" || string(result.Body) != "%PDF-1.4\n" || calls != 1 {
+		t.Fatalf("report response: %+v %v", result, err)
+	}
+}

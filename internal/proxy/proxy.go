@@ -115,7 +115,20 @@ func (p *Proxy) Call(ctx context.Context, id identity.Identity, token, service, 
 		return Result{}, e
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("Accept", "application/json")
+	accept := "application/json"
+	if operation == "downloadReport" {
+		switch query.Get("format") {
+		case "pdf":
+			accept = "application/pdf"
+		case "html":
+			accept = "text/html"
+		case "markdown":
+			accept = "text/markdown"
+		default:
+			return Result{}, ErrArguments
+		}
+	}
+	req.Header.Set("Accept", accept)
 	if len(data) > 0 {
 		req.Header.Set("Content-Type", "application/json")
 	}
@@ -130,9 +143,20 @@ func (p *Proxy) Call(ctx context.Context, id identity.Identity, token, service, 
 	if res.StatusCode >= 300 && res.StatusCode < 400 {
 		return Result{}, errors.New("upstream redirect rejected")
 	}
-	payload, e := io.ReadAll(io.LimitReader(res.Body, (2<<20)+1))
-	if e != nil || len(payload) > 2<<20 {
+	limit := 2 << 20
+	if operation == "downloadReport" {
+		limit = 8 << 20
+	}
+	payload, e := io.ReadAll(io.LimitReader(res.Body, int64(limit)+1))
+	if e != nil || len(payload) > limit {
 		return Result{}, errors.New("upstream response too large")
 	}
-	return Result{res.StatusCode, "application/json", payload}, nil
+	contentType := "application/json"
+	if operation == "downloadReport" && res.StatusCode == http.StatusOK {
+		contentType = strings.TrimSpace(strings.Split(res.Header.Get("Content-Type"), ";")[0])
+		if contentType != accept || len(payload) == 0 {
+			return Result{}, errors.New("invalid report response")
+		}
+	}
+	return Result{res.StatusCode, contentType, payload}, nil
 }

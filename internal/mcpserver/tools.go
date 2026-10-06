@@ -1,6 +1,7 @@
 package mcpserver
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -54,6 +55,9 @@ func server(p principal, sessions *session.Manager, upstream *proxy.Proxy, porta
 					}
 					return failure("upstream unavailable"), nil
 				}
+				if operation == "downloadReport" && result.Status == 200 {
+					return reportFile(result, args), nil
+				}
 				if len(portalBase) > 0 && portalBase[0] != "" && (operation == "startScan" || operation == "getStatus" || operation == "retestFinding") && result.Status >= 200 && result.Status < 300 {
 					var data map[string]any
 					if json.Unmarshal(result.Body, &data) == nil {
@@ -79,6 +83,25 @@ func server(p principal, sessions *session.Manager, upstream *proxy.Proxy, porta
 		return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: "Your Portico session has been revoked. Already accepted upstream scans are not canceled."}}}, nil
 	})
 	return s
+}
+
+func reportFile(result proxy.Result, args map[string]any) *mcp.CallToolResult {
+	id, _ := args["scan_id"].(string)
+	format, _ := args["format"].(string)
+	if !validScanID(id) || (format != "pdf" && format != "markdown" && format != "html") {
+		return failure("invalid report request")
+	}
+	if format == "pdf" && !bytes.HasPrefix(result.Body, []byte("%PDF-")) {
+		return failure("invalid PDF report")
+	}
+	return &mcp.CallToolResult{Content: []mcp.Content{
+		&mcp.TextContent{Text: fmt.Sprintf("Report file for %s is attached (%s). Do not copy its binary content into the answer.", id, format)},
+		&mcp.EmbeddedResource{Resource: &mcp.ResourceContents{
+			URI:      "portico-report:///" + id + "/report." + map[string]string{"pdf": "pdf", "markdown": "md", "html": "html"}[format],
+			MIMEType: result.ContentType,
+			Blob:     result.Body,
+		}},
+	}}
 }
 func hasRole(roles, allowed []string) bool {
 	for _, a := range allowed {
