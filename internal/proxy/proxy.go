@@ -72,7 +72,14 @@ func (p *Proxy) Call(ctx context.Context, id identity.Identity, token, service, 
 		case "id", "string", "url":
 			var ok bool
 			text, ok = v.(string)
-			if !ok || len(text) > 4096 || strings.ContainsAny(text, "\r\n\x00") {
+			if !ok {
+				return Result{}, ErrArguments
+			}
+			if operation == "saveReportTranslation" && name == "markdown" {
+				if len(text) == 0 || len(text) > 65536 || strings.ContainsRune(text, '\x00') {
+					return Result{}, ErrArguments
+				}
+			} else if len(text) > 4096 || strings.ContainsAny(text, "\r\n\x00") {
 				return Result{}, ErrArguments
 			}
 			if param.Kind == "id" && !identifier.MatchString(text) {

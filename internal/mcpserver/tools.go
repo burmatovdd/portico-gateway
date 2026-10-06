@@ -88,16 +88,24 @@ func server(p principal, sessions *session.Manager, upstream *proxy.Proxy, porta
 func reportFile(result proxy.Result, args map[string]any) *mcp.CallToolResult {
 	id, _ := args["scan_id"].(string)
 	format, _ := args["format"].(string)
-	if !validScanID(id) || (format != "pdf" && format != "markdown" && format != "html") {
+	language, _ := args["language"].(string)
+	if language == "" {
+		language = "source"
+	}
+	if !validScanID(id) || (format != "pdf" && format != "markdown" && format != "html") || (language != "source" && language != "ru") {
 		return failure("invalid report request")
 	}
 	if format == "pdf" && !bytes.HasPrefix(result.Body, []byte("%PDF-")) {
 		return failure("invalid PDF report")
 	}
+	suffix := ""
+	if language == "ru" {
+		suffix = ".ru"
+	}
 	return &mcp.CallToolResult{Content: []mcp.Content{
 		&mcp.TextContent{Text: fmt.Sprintf("Report file for %s is attached (%s). Do not copy its binary content into the answer.", id, format)},
 		&mcp.EmbeddedResource{Resource: &mcp.ResourceContents{
-			URI:      "portico-report:///" + id + "/report." + map[string]string{"pdf": "pdf", "markdown": "md", "html": "html"}[format],
+			URI:      "portico-report:///" + id + "/report" + suffix + "." + map[string]string{"pdf": "pdf", "markdown": "md", "html": "html"}[format],
 			MIMEType: result.ContentType,
 			Blob:     result.Body,
 		}},

@@ -22,7 +22,7 @@ Routes:
 - `/portal/scans/{scan_id}`: HTML status card; authorizes ownership upstream first.
 - `/portal/api/scans/{scan_id}`: projected JSON status; raw backend errors omitted.
 - `/portal/api/scans/{scan_id}/artifacts`: only allowlisted filenames, no object keys.
-- `/portal/scans/{scan_id}/report?format=html|markdown|pdf`: controlled report attachment.
+- `/portal/scans/{scan_id}/report?format=html|markdown|pdf`: controlled source report attachment. Add `language=ru` for a separately published Russian edition.
 - `/portal/scans/{scan_id}/evidence?name=...`: allowlisted published artifact attachment.
 - `/portal/portal.js`, `/portal/portal.css`: embedded same-origin assets.
 

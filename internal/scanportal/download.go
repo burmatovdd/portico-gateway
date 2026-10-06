@@ -17,7 +17,16 @@ import (
 // lookup. The downstream download endpoint must independently enforce ownership.
 func (s *Server) download(w http.ResponseWriter, r *http.Request, id string) {
 	query, err := url.ParseQuery(r.URL.RawQuery)
-	if err != nil || len(query) != 1 || len(query["format"]) != 1 {
+	if err != nil || len(query["format"]) != 1 || len(query) < 1 || len(query) > 2 {
+		s.fail(w, r, 404, false)
+		return
+	}
+	language := query.Get("language")
+	if language != "" && language != "ru" {
+		s.fail(w, r, 404, false)
+		return
+	}
+	if len(query) == 2 && (len(query["language"]) != 1 || language != "ru") {
 		s.fail(w, r, 404, false)
 		return
 	}
@@ -34,7 +43,13 @@ func (s *Server) download(w http.ResponseWriter, r *http.Request, id string) {
 		s.fail(w, r, 404, false)
 		return
 	}
-	s.downloadFile(w, r, id, "/reports/"+id+"/download", url.Values{"format": {format}}, contentType, id+"-report."+extension)
+	downloadQuery := url.Values{"format": {format}}
+	filename := id + "-report." + extension
+	if language == "ru" {
+		downloadQuery.Set("language", "ru")
+		filename = id + "-report-ru." + extension
+	}
+	s.downloadFile(w, r, id, "/reports/"+id+"/download", downloadQuery, contentType, filename)
 }
 
 func (s *Server) downloadFile(w http.ResponseWriter, r *http.Request, id, path string, query url.Values, contentType, filename string) {

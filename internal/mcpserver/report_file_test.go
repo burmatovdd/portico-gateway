@@ -32,3 +32,13 @@ func TestReportFileRejectsInvalidPDF(t *testing.T) {
 		t.Fatal("invalid PDF accepted")
 	}
 }
+
+func TestRussianReportUsesDistinctResourceName(t *testing.T) {
+	id := "scan-12345678901234567890123456789012"
+	result := reportFile(proxy.Result{Status: 200, ContentType: "application/pdf", Body: []byte("%PDF-1.4\n")},
+		map[string]any{"scan_id": id, "format": "pdf", "language": "ru"})
+	encoded, err := json.Marshal(result)
+	if err != nil || !strings.Contains(string(encoded), "/report.ru.pdf") {
+		t.Fatalf("wrong Russian report resource: %s %v", encoded, err)
+	}
+}

@@ -201,6 +201,24 @@ func TestDownloadUsesFixedHostBoundedTypesAndSafeFilename(t *testing.T) {
 		}
 	}
 }
+func TestRussianReportDownloadUsesAllowedLanguage(t *testing.T) {
+	s, _, calls := fixture(t, `{"scan_id":"scan-one"}`, 200)
+	original := s.Proxy.Client.Transport
+	s.Proxy.Client.Transport = transport(func(r *http.Request) (*http.Response, error) {
+		if r.URL.Path == "/scans/scan-one" {
+			return original.RoundTrip(r)
+		}
+		*calls++
+		if r.URL.Path != "/reports/scan-one/download" || r.URL.Query().Get("format") != "pdf" || r.URL.Query().Get("language") != "ru" {
+			t.Fatal("unexpected translated report request", r.URL)
+		}
+		return &http.Response{StatusCode: 200, Header: http.Header{"Content-Type": {"application/pdf"}}, Body: io.NopCloser(strings.NewReader("%PDF-1.7"))}, nil
+	})
+	w := serve(s, "/portal/scans/scan-one/report?format=pdf&language=ru")
+	if w.Code != 200 || *calls != 2 || w.Body.String() != "%PDF-1.7" || !strings.Contains(w.Header().Get("Content-Disposition"), "scan-one-report-ru.pdf") {
+		t.Fatal(w.Code, *calls, w.Header())
+	}
+}
 func TestDownloadRejectsRedirectsWrongTypesAndOversize(t *testing.T) {
 	for _, tc := range []struct {
 		status            int
@@ -225,7 +243,7 @@ func TestDownloadRejectsRedirectsWrongTypesAndOversize(t *testing.T) {
 }
 func TestDownloadFormatAllowlist(t *testing.T) {
 	s, _, calls := fixture(t, `{}`, 200)
-	for _, query := range []string{"format=html&format=markdown", "format=html&url=https://evil.example", "format=../html", ""} {
+	for _, query := range []string{"format=html&format=markdown", "format=html&url=https://evil.example", "format=../html", "", "format=pdf&language=en", "format=pdf&language=ru&language=ru", "format=pdf&language=ru&url=https://evil.example"} {
 		if w := serve(s, "/portal/scans/scan-one/report?"+query); w.Code != 404 {
 			t.Fatal(w.Code)
 		}
