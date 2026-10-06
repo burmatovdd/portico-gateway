@@ -73,9 +73,10 @@ helm lint deploy/chart -f deploy/values.yaml
 helm template portico-gateway deploy/chart -n portico -f deploy/values.yaml > /tmp/portico-rendered.yaml
 ```
 
-Просмотреть результат. Создать namespace `portico`, если он отсутствует. Затем:
+Просмотреть результат. Для новой установки создать namespace с ограничениями Pod Security из `deploy/ns.yaml`. Этот пример использует профиль `restricted`; дополнительные компоненты с иными требованиями следует размещать отдельно. Для существующего namespace сначала проверить совместимость уже размещённых в нём компонентов. Затем:
 
 ```sh
+kubectl apply -f deploy/ns.yaml
 kubectl apply -f deploy/secrets.local.yaml
 helm upgrade --install portico-gateway deploy/chart -n portico -f deploy/values.yaml --wait --timeout 5m
 kubectl -n portico get pods
