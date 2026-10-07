@@ -8,9 +8,9 @@ import (
 
 func TestConsentEscapesClientAndPreservesForm(t *testing.T) {
 	w := httptest.NewRecorder()
-	Consent(w, `<script>alert(1)</script>`, "transaction", "csrf")
+	Consent(w, `<script>alert(1)</script>`, "transaction", "csrf", "https://chat.example/")
 	b := w.Body.String()
-	if strings.Contains(b, "<script>") || !strings.Contains(b, `action="/oauth/login"`) || !strings.Contains(b, `name="csrf" value="csrf"`) {
+	if strings.Contains(b, "<script>") || !strings.Contains(b, `action="/oauth/login"`) || !strings.Contains(b, `name="csrf" value="csrf"`) || !strings.Contains(b, `href="https://chat.example/"`) || !strings.Contains(b, "Вернуться в приложение") {
 		t.Fatal(b)
 	}
 }

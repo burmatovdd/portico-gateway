@@ -43,3 +43,18 @@ func TestErrorReturnPreservesJSONResponse(t *testing.T) {
 		t.Fatal("protocol response changed")
 	}
 }
+
+func TestClientHomeUsesOnlyRegisteredRedirectOrigin(t *testing.T) {
+	s := &Server{clients: map[string]Client{"chat": {ID: "chat", RedirectURIs: []string{"https://chat.example/oauth/callback"}}}}
+	for _, tc := range []struct {
+		client, redirect, want string
+	}{
+		{"chat", "https://chat.example/oauth/callback", "https://chat.example/"},
+		{"chat", "https://evil.example/oauth/callback", ""},
+		{"unknown", "https://chat.example/oauth/callback", ""},
+	} {
+		if got := s.clientHome(tc.client, tc.redirect); got != tc.want {
+			t.Fatalf("clientHome(%q, %q) = %q, want %q", tc.client, tc.redirect, got, tc.want)
+		}
+	}
+}

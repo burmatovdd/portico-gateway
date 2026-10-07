@@ -5,6 +5,6 @@
 {{if .Client}}<div class="application"><span>Приложение</span><strong>{{.Client}}</strong></div>{{end}}
 <p class="description">{{.Body}}</p>
 {{if .Note}}<p class="note">{{.Note}}</p>{{end}}
-{{if .Transaction}}<form method="post" action="/oauth/login"><input type="hidden" name="transaction" value="{{.Transaction}}"><input type="hidden" name="csrf" value="{{.CSRF}}"><button type="submit">Продолжить</button></form><a class="secondary" href="/">На главную</a>{{else if .ReturnURL}}<a class="button" href="{{.ReturnURL}}">Вернуться в приложение</a>{{else if .HomeLink}}<a class="button" href="/">На главную</a>{{end}}
+{{if .Transaction}}<form method="post" action="/oauth/login"><input type="hidden" name="transaction" value="{{.Transaction}}"><input type="hidden" name="csrf" value="{{.CSRF}}"><button type="submit">Продолжить</button></form>{{if .ReturnURL}}<a class="secondary" href="{{.ReturnURL}}">Вернуться в приложение</a>{{else}}<a class="secondary" href="/">На главную</a>{{end}}{{else if .ReturnURL}}<a class="button" href="{{.ReturnURL}}">Вернуться в приложение</a>{{else if .HomeLink}}<a class="button" href="/">На главную</a>{{end}}
 {{if .Transaction}}<footer>Доступ определяется правами вашей учётной записи.</footer>{{end}}
 </div></main></div></body></html>

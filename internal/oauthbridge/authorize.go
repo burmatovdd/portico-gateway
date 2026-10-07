@@ -74,7 +74,22 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: cookie, Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode, MaxAge: 600})
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	webui.Consent(w, f.Client, id, f.CSRF)
+	webui.Consent(w, f.Client, id, f.CSRF, s.clientHome(f.Client, f.Redirect))
+}
+
+// clientHome never trusts an arbitrary browser referrer or OAuth query value.
+// A registered redirect URI identifies the application origin, but cannot
+// identify the particular chat or page that initiated the OAuth flow.
+func (s *Server) clientHome(client, redirect string) string {
+	if !s.registered(client, redirect) {
+		return ""
+	}
+	u, err := url.Parse(redirect)
+	if err != nil || u.Host == "" || u.User != nil || strings.ContainsAny(u.Host, " ;\t\r\n") ||
+		(u.Scheme != "https" && (u.Scheme != "http" || u.Hostname() != "127.0.0.1")) {
+		return ""
+	}
+	return (&url.URL{Scheme: u.Scheme, Host: u.Host, Path: "/"}).String()
 }
 func bound(r *http.Request, f flow) bool {
 	c, e := r.Cookie(cookieName)

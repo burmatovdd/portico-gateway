@@ -50,8 +50,8 @@ func Assets() http.Handler {
 		_, _ = w.Write(data)
 	})
 }
-func Consent(w http.ResponseWriter, client, transaction, csrf string) {
-	Render(w, 200, Page{Title: "Подключение к инструментам", Body: "Приложение запрашивает доступ к инструментам, разрешённым вашей учётной записи.", Client: client, Transaction: transaction, CSRF: csrf})
+func Consent(w http.ResponseWriter, client, transaction, csrf, returnURL string) {
+	Render(w, 200, Page{Title: "Подключение к инструментам", Body: "Приложение запрашивает доступ к инструментам, разрешённым вашей учётной записи.", Client: client, Transaction: transaction, CSRF: csrf, ReturnURL: returnURL})
 }
 func Error(w http.ResponseWriter, status int, code string) {
 	ErrorWithReturn(w, status, code, "")
