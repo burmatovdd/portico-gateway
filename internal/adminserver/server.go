@@ -40,11 +40,19 @@ type Server struct {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /admin/login", s.Auth.Login)
+	if dual, ok := s.Auth.(interface {
+		LocalLogin(http.ResponseWriter, *http.Request)
+		OIDCLogin(http.ResponseWriter, *http.Request)
+	}); ok {
+		mux.HandleFunc("POST /admin/local/login", dual.LocalLogin)
+		mux.HandleFunc("GET /admin/oidc/login", dual.OIDCLogin)
+	}
 	mux.HandleFunc("GET /admin/callback", s.Auth.Callback)
 	mux.HandleFunc("POST /admin/logout", s.Auth.Logout)
 	mux.HandleFunc("GET /admin/style.css", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
 		io.WriteString(w, adminui.CSS)
+		io.WriteString(w, adminui.LocalLoginCSS)
 	})
 	mux.HandleFunc("GET /admin/{$}", s.page)
 	mux.HandleFunc("POST /admin/models", s.save)

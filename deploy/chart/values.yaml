@@ -33,6 +33,9 @@ config:
   admin:
     enabled: false
     groups: []
+    local:
+      enabled: false
+      username: admin
     catalog_url: https://litellm.example.org/v1
     allow_http: false
   portal:

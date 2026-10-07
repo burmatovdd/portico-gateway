@@ -25,6 +25,32 @@ func (a fakeAuth) Login(http.ResponseWriter, *http.Request)    {}
 func (a fakeAuth) Callback(http.ResponseWriter, *http.Request) {}
 func (a fakeAuth) Logout(http.ResponseWriter, *http.Request)   {}
 
+type fakeDualAuth struct{ fakeAuth }
+
+func (fakeDualAuth) LocalLogin(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusTeapot)
+}
+func (fakeDualAuth) OIDCLogin(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusAccepted)
+}
+
+func TestSeparateAdminLoginRoutes(t *testing.T) {
+	s := &Server{Auth: fakeDualAuth{}}
+	for _, tc := range []struct {
+		method, path string
+		status       int
+	}{
+		{"POST", "/admin/local/login", http.StatusTeapot},
+		{"GET", "/admin/oidc/login", http.StatusAccepted},
+	} {
+		w := httptest.NewRecorder()
+		s.Handler().ServeHTTP(w, httptest.NewRequest(tc.method, tc.path, nil))
+		if w.Code != tc.status {
+			t.Fatalf("%s: %d", tc.path, w.Code)
+		}
+	}
+}
+
 type fakePolicies struct{ updated bool }
 
 func (p *fakePolicies) Read(context.Context) (modelpolicy.Snapshot, error) {

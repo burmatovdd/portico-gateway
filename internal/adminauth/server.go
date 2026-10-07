@@ -366,6 +366,9 @@ func (s *Server) Callback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	cookie(w, s.sessionCookie(), handle, int(s.sessions.MaxAge/time.Second))
+	if s.base() == "/admin" {
+		cookie(w, localCookieName, "", -1)
+	}
 	http.Redirect(w, r, s.base()+"/", http.StatusSeeOther)
 }
 func (s *Server) Logout(w http.ResponseWriter, r *http.Request) {

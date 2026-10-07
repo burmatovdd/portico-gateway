@@ -84,12 +84,26 @@ func run() error {
 		if e = policies.Migrate(boot); e != nil {
 			return e
 		}
-		admin, err := adminauth.New(c.PublicURL, c.Admin.Groups, store.Pool, v, sessions, idp)
-		if err != nil {
-			return err
+		admin := &adminauth.Combined{}
+		var err error
+		if len(c.Admin.Groups) > 0 {
+			admin.OIDC, err = adminauth.New(c.PublicURL, c.Admin.Groups, store.Pool, v, sessions, idp)
+			if err != nil {
+				return err
+			}
+			if err = admin.OIDC.Migrate(boot); err != nil {
+				return err
+			}
 		}
-		if err = admin.Migrate(boot); err != nil {
-			return err
+		if c.Admin.Local.Enabled {
+			admin.Local, err = adminauth.NewLocal(c.PublicURL, c.Admin.Local.Username, os.Getenv("PORTICO_LOCAL_ADMIN_PASSWORD_HASH"), store, sessions.MaxAge, sessions.IdleAge)
+			if err != nil {
+				return err
+			}
+			admin.Local.SetPool(store.Pool)
+			if err = admin.Local.Migrate(boot); err != nil {
+				return err
+			}
 		}
 		catalogKey := os.Getenv("PORTICO_LITELLM_API_KEY")
 		if catalogKey == "" {

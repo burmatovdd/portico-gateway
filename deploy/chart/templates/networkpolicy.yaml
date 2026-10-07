@@ -21,7 +21,9 @@ spec:
             matchLabels: {app.kubernetes.io/instance: {{ .Release.Name }}}
       ports: [{protocol: TCP, port: 8080}]
     {{- if .Values.config.admin.enabled }}
-    {{- toYaml .Values.models.networkPolicy.egressRules | nindent 4 }}
+    {{- with .Values.models.networkPolicy.egressRules }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
     {{- end }}
     {{- with .Values.networkPolicy.egressRules }}
     {{- toYaml . | nindent 4 }}

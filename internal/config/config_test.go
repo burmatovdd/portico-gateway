@@ -43,6 +43,18 @@ func TestRemoteMCPConfig(t *testing.T) {
 		t.Fatal("defaults missing")
 	}
 }
+func TestLocalAdminDoesNotRequireOIDCAdminGroup(t *testing.T) {
+	text := validConfig + "admin:\n  enabled: true\n  local:\n    enabled: true\n    username: operator\n  catalog_url: https://litellm.example/v1\n"
+	if _, err := loadText(t, text); err != nil {
+		t.Fatal(err)
+	}
+}
+func TestAdminRequiresExplicitLoginMethod(t *testing.T) {
+	text := validConfig + "admin:\n  enabled: true\n  catalog_url: https://litellm.example/v1\n"
+	if _, err := loadText(t, text); err == nil {
+		t.Fatal("admin accepted with no login method")
+	}
+}
 func TestRejectsInvalidMCPConfig(t *testing.T) {
 	for _, text := range []string{
 		strings.Replace(validConfig, "https://portico.example", "http://portico.example", 1),

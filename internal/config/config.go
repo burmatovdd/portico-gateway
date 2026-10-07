@@ -15,6 +15,7 @@ import (
 	"portico-gateway/internal/oauthbridge"
 	"portico-gateway/internal/proxy"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -28,6 +29,10 @@ type Config struct {
 		Groups     []string `yaml:"groups"`
 		CatalogURL string   `yaml:"catalog_url"`
 		AllowHTTP  bool     `yaml:"allow_http"`
+		Local      struct {
+			Enabled  bool   `yaml:"enabled"`
+			Username string `yaml:"username"`
+		} `yaml:"local"`
 	} `yaml:"admin"`
 	Listen    string `yaml:"listen"`
 	PublicURL string `yaml:"public_url"`
@@ -84,8 +89,11 @@ func Load(path string) (Config, error) {
 	}
 	if c.Admin.Enabled {
 		u, err := url.Parse(c.Admin.CatalogURL)
-		if err != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Scheme != "https" && !(c.Admin.AllowHTTP && u.Scheme == "http")) || len(c.Admin.Groups) == 0 {
+		if err != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Scheme != "https" && !(c.Admin.AllowHTTP && u.Scheme == "http")) || (!c.Admin.Local.Enabled && len(c.Admin.Groups) == 0) {
 			return c, errors.New("invalid admin configuration")
+		}
+		if c.Admin.Local.Enabled && (c.Admin.Local.Username == "" || len(c.Admin.Local.Username) > 128 || c.Admin.Local.Username != strings.TrimSpace(c.Admin.Local.Username) || strings.ContainsAny(c.Admin.Local.Username, "\r\n\x00")) {
+			return c, errors.New("invalid local admin username")
 		}
 		for _, group := range c.Admin.Groups {
 			if group == "" || group == "*" {

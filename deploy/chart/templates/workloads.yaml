@@ -52,6 +52,10 @@ spec:
             - name: PORTICO_LITELLM_API_KEY
               valueFrom: {secretKeyRef: {name: {{ $root.Values.existingSecret }}, key: {{ $root.Values.models.secretKey }}}}
             {{- end }}
+            {{- if and $root.Values.config.admin.enabled $root.Values.config.admin.local.enabled }}
+            - name: PORTICO_LOCAL_ADMIN_PASSWORD_HASH
+              valueFrom: {secretKeyRef: {name: {{ $root.Values.existingSecret }}, key: local-admin-password-hash}}
+            {{- end }}
             - name: PORTICO_DATABASE_PASSWORD
               valueFrom: {secretKeyRef: {name: {{ $root.Values.existingSecret }}, key: database-password}}
             - name: PORTICO_ENCRYPTION_KEY
